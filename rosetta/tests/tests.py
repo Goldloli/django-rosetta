@@ -12,7 +12,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.dispatch import receiver
 from django.http import Http404
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.test.client import Client
 from django.urls import resolve, reverse
 from django.utils.encoding import force_bytes
@@ -1112,3 +1112,21 @@ class RosettaTestCase(TestCase):
 # Stubbed access control function
 def no_access(user):
     return False
+
+
+class RefLangPoPathTest(SimpleTestCase):
+    """Regression tests for the reference language .po path resolution (#310)."""
+
+    def test_posix_separator(self):
+        path = "/project/locale/es/LC_MESSAGES/django.po"
+        self.assertEqual(
+            views._ref_lang_po_path(path, "en", separator="/"),
+            "/project/locale/en/LC_MESSAGES/django.po",
+        )
+
+    def test_windows_separator_is_not_a_regex_escape(self):
+        path = "C:\\project\\locale\\es\\LC_MESSAGES\\django.po"
+        self.assertEqual(
+            views._ref_lang_po_path(path, "en", separator="\\"),
+            "C:\\project\\locale\\en\\LC_MESSAGES\\django.po",
+        )

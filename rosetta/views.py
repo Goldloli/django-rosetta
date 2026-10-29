@@ -34,6 +34,22 @@ def get_app_name(path):
     return path.split("/locale")[0].split("/")[-1]
 
 
+def _ref_lang_po_path(po_file_path, ref_lang, separator=os.sep):
+    """Return the path of the reference language .po file.
+
+    The separator is escaped before being embedded into the regular
+    expression and the replacement is passed as a callable, so that a
+    Windows separator (a backslash) is never interpreted as a regex escape.
+    """
+    replacement = "{separator}locale{separator}{ref_lang}".format(
+        separator=separator, ref_lang=ref_lang
+    )
+    pattern = r"{separator}locale{separator}[a-z]{{2}}".format(
+        separator=re.escape(separator)
+    )
+    return re.sub(pattern, lambda match: replacement, po_file_path)
+
+
 class LoginURL(Promise):
     """
     Tests friendly login URL, url is resolved at runtime.
@@ -585,13 +601,7 @@ class TranslationFormView(RosettaFileLevelMixin, TemplateView):
         """
         ref_pofile = None
         if rosetta_settings.ENABLE_REFLANG and self.ref_lang != "msgid":
-            replacement = "{separator}locale{separator}{ref_lang}".format(
-                separator=os.sep, ref_lang=self.ref_lang
-            )
-            pattern = r"\{separator}locale\{separator}[a-z]{{2}}".format(
-                separator=os.sep
-            )
-            ref_fn = re.sub(pattern, replacement, self.po_file_path)
+            ref_fn = _ref_lang_po_path(self.po_file_path, self.ref_lang)
             try:
                 ref_pofile = pofile(ref_fn)
             except IOError:
